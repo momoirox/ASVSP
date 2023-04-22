@@ -1,0 +1,111 @@
+version: '3' 
+
+services:
+
+  namenode:
+    image: bde2020/hadoop-namenode:${HADOOP_MASTERNODE_VERSION:-2.0.0-hadoop3.2.1-java8}
+    container_name: namenode
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+      - ./Data:/hadoop-data
+    environment:
+      - CLUSTER_NAME=test
+    env_file:
+      - ./hadoop.env
+    ports:
+      - 9870:9870
+      - 9000:9000
+
+  datanode1:
+    image: bde2020/hadoop-datanode:${HADOOP_DATANODE_VERSION:-2.0.0-hadoop3.2.1-java8}
+    container_name: datanode1
+    depends_on: 
+      - namenode
+    volumes:
+      - hadoop_datanode1:/hadoop/dfs/data
+    env_file:
+      - ./hadoop.env
+
+  spark-master:
+    image: bde2020/spark-master:${SPARK_MASTER_VERSION:-3.0.1-hadoop3.2}
+    container_name: spark-master
+    ports:
+      - 8080:8080
+      - 7077:7077
+    environment: 
+      - PYSPARK_PYTHON=python3
+    env_file:
+      - ./hadoop.env
+    volumes: 
+      - ./Producer:/Producer
+      - ./Consumer:/Consumer
+   
+  spark-worker1:
+    image: bde2020/spark-worker:${SPARK_WORKER_VERSION:-3.0.1-hadoop3.2}
+    container_name: spark-worker1
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+    ports:
+      - 8081:8081
+    env_file:
+      - ./hadoop.env
+  
+  hue:
+    image: gethue/hue:20201111-135001
+    hostname: hue
+    container_name: hue
+    dns: 8.8.8.8
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./conf.dist:/usr/share/hue/desktop/conf
+    depends_on:
+      - namenode
+
+  db:
+    image: postgres
+    restart: always
+    container_name: postgres
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: momoirox@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: password
+    
+
+  metabase:
+    volumes:
+      - metabase-data:/metabase-data
+    environment:
+      - MB_DB_FILE=/metabase-data/metabase.db
+      - MB_DB_TYPE=postgres
+      - MB_DB_DBNAME=postgres
+      - MB_DB_PORT=5432
+      - MB_DB_USER=postgres
+      - MB_DB_PASS=postgres
+      - MB_DB_HOST=db
+      - PGDATA= /var/lib/postgresql/data/init/
+    ports:
+        - 3000:3000
+    image: metabase/metabase
+    restart: always
+    depends_on: 
+      - db
+volumes:
+  hadoop_namenode:
+  hadoop_datanode1:
+  db-data:
+  metabase-data:
