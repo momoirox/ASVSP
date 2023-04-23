@@ -47,11 +47,7 @@ for id in movie_id_strings:
                 break
             else:
                 print(f"Attempt {i+1} failed. Retrying request {url}")
-    
-   
 
-
-print("ended")
 cast_schema = StructType([
     StructField("movie_id", IntegerType(), True),
     StructField("adult", BooleanType(), True),
@@ -66,8 +62,6 @@ cast_schema = StructType([
     StructField("credit_id", StringType(), True),
     StructField("order", IntegerType(), True)
 ])
-
-
 
 cast_df = spark.createDataFrame(cast_data, schema=cast_schema)
 

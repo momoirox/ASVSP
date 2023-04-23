@@ -7,7 +7,6 @@ services:
     container_name: namenode
     volumes:
       - hadoop_namenode:/hadoop/dfs/name
-      - ./Data:/hadoop-data
     environment:
       - CLUSTER_NAME=test
     env_file:
@@ -39,6 +38,7 @@ services:
     volumes: 
       - ./Producer:/Producer
       - ./Consumer:/Consumer
+      - ./Data:/Data
    
   spark-worker1:
     image: bde2020/spark-worker:${SPARK_WORKER_VERSION:-3.0.1-hadoop3.2}
