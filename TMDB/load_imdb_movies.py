@@ -1,7 +1,11 @@
+# This file uses TMDB Api to load data
+# it is not used in the project, instead it is
+# just an experiment to see how to use TMDB Api
+
 import requests
 import os
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, IntegerType, StringType, ArrayType, DoubleType, BooleanType, DateType
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType, ArrayType, DoubleType
 from pyspark.sql.functions import col
 
 # create a SparkSession
@@ -37,7 +41,6 @@ movie_df = spark.createDataFrame(movie_data, schema=movies_schema)
 
 
 # fetch genre for each movie and combine them with the movie data
-
 genre_schema = StructType([
     StructField("id", IntegerType(), True),
     StructField("name", StringType(), True)

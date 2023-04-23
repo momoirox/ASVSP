@@ -1,7 +1,11 @@
+# This file uses TMDB Api to load data
+# it is not used in the project, instead it is
+# just an experiment to see how to use TMDB Api
+
 import requests
 import os
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, FloatType, StructField, IntegerType, StringType, ArrayType, BooleanType, DateType
+from pyspark.sql.types import StructType, FloatType, StructField, IntegerType, StringType, BooleanType
 from pyspark.sql.functions import collect_list
 
 # create a SparkSession
