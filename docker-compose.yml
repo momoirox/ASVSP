@@ -7,6 +7,7 @@ services:
     container_name: namenode
     volumes:
       - hadoop_namenode:/hadoop/dfs/name
+      - ./Data:/Data
     environment:
       - CLUSTER_NAME=test
     env_file:
