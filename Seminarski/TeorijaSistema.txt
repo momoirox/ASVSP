@@ -1,0 +1,17 @@
+This is a Docker Compose file that defines a multi-container application for Apache Kafka and ZooKeeper, which is a popular distributed streaming platform. It includes the following containers:
+
+ZooKeeper (zoo1): This container is used to manage the Kafka cluster's configuration and state.
+
+Kafka brokers (kafka1 and kafka2): These are the main components of the Kafka cluster that handle the storage and processing of data.
+
+Kafka producer (producer): This container generates data and sends it to the Kafka cluster.
+
+Init-kafka: This container is used to initialize the Kafka topics and set up the necessary configuration.
+
+The Docker Compose file also includes environment variables and volume mounts to configure the containers and ensure data persistence. By running this Docker Compose file, you can easily create a local Kafka cluster and start producing and consuming data.
+
+Zookeeper se koristi kao centralizovana koordinaciona usluga u Kafka sistemu. Kafka koristi Zookeeper da bi čuvao konfiguraciju klastera, kao i metapodatke o svim Kafka temama, particijama i njihovoj lokaciji u klasteru. Svaki Kafka broker se registruje u Zookeeper, tako da klijenti mogu saznati koja Kafka brokerja su u životu i upravljaju kojim particijama.
+
+Kada klijent šalje poruku u Kafka klaster, ona se prvo šalje na lidera particije koja je odgovorna za tu temu i particiju. Lider zatim čuva poruku i replikuje je na ostale Kafka brokere u klasteru. Kada sve replike potvrde da su primile poruku, lider označava poruku kao "committed", a klijent dobija potvrdu da je poruka uspešno poslata.
+
+Zookeeper se takođe koristi za detekciju stanja Kafka brokera i za izbor novog lidera ako trenutni lider prestane da funkcioniše.

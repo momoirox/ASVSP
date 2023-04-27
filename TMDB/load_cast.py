@@ -14,8 +14,6 @@ spark = SparkSession.builder.appName("ReadMovieIds").getOrCreate()
 YOUR_API_KEY = os.environ["YOUR_API_KEY"]
 HDFS_NAMENODE = os.environ["CORE_CONF_fs_defaultFS"]
 
-
-
 movie_genres_df = spark.read.csv(HDFS_NAMENODE + "/raw/movies_and_genres.csv", header=True)
 movie_ids = [row["movie_id"] for row in movie_genres_df.select("movie_id").distinct().orderBy("movie_id").collect()]
 movie_id_strings = list(map(str, movie_ids))

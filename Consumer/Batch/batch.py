@@ -2,11 +2,31 @@ from pyspark.sql.session import SparkSession
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
 import os
 from pyspark.sql.window import Window
-from pyspark.sql.functions import col, min, max, desc, split, array_contains, count, avg, explode, regexp_replace, trim, expr, regexp_extract
+from pyspark.sql.functions import col, min, max, when, round, desc, split, array_contains, count, avg, explode, regexp_replace, trim, expr, regexp_extract
 
 
-def convert_columns(movies_df):
+def transform_genre(movies_df):
 
+    # Regular expression pattern that matches any non-digit character (\D) 
+    # occurring at the beginning of the string (^), 
+    # with optional whitespace (\s*) before it.
+    genre_pattern = r"^\s*(\D)"
+    return movies_df.filter(regexp_extract(col("genre")[0], genre_pattern, 1).isin(list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")))
+
+def select_columns(movies_df, selected):
+    return movies_df.select([col(column_name) for column_name in selected])
+
+def transform_columns(movies_df):
+
+    # Filter out rows that don't have duration in the format of "XX min"
+    # Cast duration column to integer type
+    # Filter out rows that have duration of 0
+    movies_df = movies_df.filter(regexp_extract(col("duration"), r"^\d+\s*min$", 0) != "")
+    movies_df = movies_df.withColumn("duration", regexp_replace(col("duration"), " min", ""))
+    # Strings that only contain digits
+    movies_df = movies_df.filter(regexp_extract(col("duration"), r"^\d+$", 0) != "")
+    movies_df = movies_df.withColumn("duration", col("duration").cast("int"))
+    movies_df = movies_df.filter(col("duration") > 0)
     # Convert gross_income to double
     movies_df = movies_df.withColumn("gross_income", regexp_replace("gross_income", ",", "").cast("double"))
     movies_df = movies_df.filter(col("id").startswith("tt"))
@@ -31,7 +51,6 @@ def filter_movies(movies_df):
     movies_df = movies_df.filter(regexp_extract(col("genre")[0], genre_pattern, 1).isin(list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")))
                       
     return movies_df
-
 
 def top_hundred_movies(movies_df):
     # Calculate weighted rating based on vote_average and vote_count
@@ -60,7 +79,9 @@ def gross_income_by_genre(movies_df):
 
     write_df(sorted_df,"income_by_genre")
 
-def directors(movies_df) :
+# Function groups the data by director and calculates the average gross income for each director, 
+# results are set in descending order
+def directors_with_highest_avg_gross_income(movies_df) :
 
     df_exp = movies_df.selectExpr("*", "arrays_zip(directors_id, directors_name) as dir_id_name")
     df_exploded = df_exp.selectExpr("*", "explode(dir_id_name) as dir_info")
@@ -76,7 +97,7 @@ def directors(movies_df) :
                                     .select("director_name", "avg_gross_income") \
                                     .limit(100)
 
-    write_df(final_df,"directors")
+    write_df(final_df,"directors_income")
 
 # Function counts the number of movies in each certificate category. 
 def num_movies_by_certificate_category(movies_dfs) :
@@ -94,42 +115,40 @@ def num_movies_by_certificate_category(movies_dfs) :
    
     write_df(df,"movies_in_certificate_category")
 
-def rating_by_genre(movie_df):
-   
- 
-  write_df(movie_df, "Genre_popularity")
-
 
 def genre_min_and_max_grossing_movie(movies_df):
+
     
-    genre_pattern = r"^\s*(\D)"
-    movies_df = movies_df.filter(regexp_extract(col("genre")[0], genre_pattern, 1).isin(list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")))
-    selected_columns = ["id", "name", "year","genre" ,"gross_income"]
-    selected_df = movies_df.select([col(column_name) for column_name in selected_columns])
-    df = selected_df.withColumn("genre", explode("genre"))
+    movies_df = transform_genre(movies_df)
+    selected_df = select_columns(movies_df,["id", "name", "year","genre" ,"gross_income"])
+    df = selected_df.withColumn("genre", explode("genre")).filter(col("gross_income") != 0)
 
+    windowSpec = Window.partitionBy("genre")
+    max_gross_income_df =df.withColumn("max_gross_income", max("gross_income").over(windowSpec))
+    min_gross_income_df = df.withColumn("min_gross_income", min("gross_income").over(windowSpec))
 
-    windowSpec = Window.partitionBy("genre","gross_income")    
-    # print(type(df))
-    # df.printSchema()
-    # df.show(10)
+    highest_grossing_df = max_gross_income_df.filter(col("gross_income") == col("max_gross_income"))
+    lowest_grossing_df = min_gross_income_df.filter(col("gross_income") == col("min_gross_income"))
 
-    #Compute the minimum and maximum rating for each movie by director
-    df_min_max = df.select("genre") \
-                .withColumn("worst_grossing", min("gross_income").over(windowSpec)) \
-                .withColumn("best_grossing", max("gross_income").over(windowSpec)) \
-                .orderBy(desc("best_grossing")) \
-                .limit(200) 
+    write_df(highest_grossing_df,"highest_grossing_movies")
+    write_df(lowest_grossing_df,"lowest_grossing_movies")
     
-    write_df(df_min_max,"best_and_worst")
 
-
-def the_movie_duration(movie_df):
-## percent movies lasting one hour
-## percent movies lasting 2 hours
-## percent movies lasting 3 hours
-## percent movies lasting >3 hours   
-    write_df(movie_df, "Genre_popularity")
+def movie_duration_percentage(movies_df):
+  
+    # Select the required columns and add the duration column
+    selected_df = select_columns(movies_df,["id", "name", "year", "genre", "duration"])
+    selected_df = selected_df.withColumn("duration",when(col("duration") <= 60, "Less than 1 hour")
+                    .when(col("duration") <= 120, "1-2 hours")
+                    .when(col("duration") <= 180, "2-3 hours")
+                    .otherwise("More than 3 hours"))
+   
+   # Calculate the percentage of movies in each duration category
+    duration_counts_df = selected_df.groupBy("duration").count() \
+                    .withColumn("percentage", round(col("count").cast("double")/selected_df.count()*100, 2))
+    duration_counts_df = duration_counts_df.drop("count")
+  
+    write_df(duration_counts_df, "movie_duration_percentage")
 
 def write_df(dataframe,tablename):
     PSQL_SERVERNAME= "postgres"
@@ -175,9 +194,9 @@ if __name__ == '__main__':
     ])
     
     movies_df = spark.read.csv(HDFS_NAMENODE + "/raw/movies.csv", header=True,schema=movie_schema)
-    movies_df.cache()
     
-    df = convert_columns(movies_df)
+    # df = transform_columns(movies_df)
+    # movie_duration_percentage(df)
     # directors(df)
     # num_movies_by_certificate_category(df)
 
@@ -187,7 +206,7 @@ if __name__ == '__main__':
 
     #gross_income_by_genre(df)
 
-    genre_min_and_max_grossing_movie(df)
+    #genre_min_and_max_grossing_movie(df)
 
     movies_df.unpersist()
 
