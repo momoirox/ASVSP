@@ -169,6 +169,7 @@ services:
       - KAFKA_BROKER=kafka1:19092
       - KAFKA_TOPIC=tmdb-movies
       - DATASET_API_LINK=https://api.themoviedb.org/3/
+      - YOUR_API_KEY=place_your_secret_key
     depends_on:
       - kafka1
     env_file:

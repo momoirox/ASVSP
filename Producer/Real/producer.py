@@ -12,12 +12,8 @@ from kafka import KafkaProducer
 
 MAX_ENTRIES = 50
 YOUR_API_KEY = environ.get("YOUR_API_KEY")
-base_url = "https://api.themoviedb.org/3/"
-movie_path = "movie/now_playing"
-language = "en-US"
-
-
 KAFKA_TOPIC = environ.get("KAFKA_TOPIC", "tmdb-movies")
+
 KAFKA_CONFIGURATION = {
     "bootstrap_servers": environ.get("KAFKA_BROKER", "kafka1:19092").split(","),
     "key_serializer": lambda x: str.encode("" if not x else x, encoding='utf-8'),
@@ -70,8 +66,7 @@ def main():
     counter = 1
     while True:
         try:
-            movie_url = "https://api.themoviedb.org/3/movie/now_playing?api_key=7c13d311d648e2685c94dc298f05c042&language=en&page={0}".format(counter)
-            # DATASET_API_LINK = movie_url
+            movie_url = "https://api.themoviedb.org/3/movie/now_playing?api_key={0}&language=en&page={1}".format(YOUR_API_KEY,counter)
             print(movie_url)
             response = requests.get(url=movie_url)
             

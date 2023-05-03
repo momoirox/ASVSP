@@ -195,18 +195,20 @@ if __name__ == '__main__':
     
     movies_df = spark.read.csv(HDFS_NAMENODE + "/raw/movies.csv", header=True,schema=movie_schema)
     
-    # df = transform_columns(movies_df)
-    # movie_duration_percentage(df)
-    # directors(df)
-    # num_movies_by_certificate_category(df)
+    df = transform_columns(movies_df)
+    movie_duration_percentage(df)
+    
+    directors(df)
+    
+    num_movies_by_certificate_category(df)
 
-    # filtered_movies_df = filter_movies(df)
+    filtered_movies_df = filter_movies(df)
 
-    # top_hundred_movies(filtered_movies_df)
+    top_hundred_movies(filtered_movies_df)
 
-    #gross_income_by_genre(df)
+    gross_income_by_genre(df)
 
-    #genre_min_and_max_grossing_movie(df)
+    genre_min_and_max_grossing_movie(df)
 
     movies_df.unpersist()
 
