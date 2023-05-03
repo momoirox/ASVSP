@@ -10,7 +10,7 @@ Python files that are used for loading data are in Producer/Batch folder.
 Data was taken from TMDB api. A reguest to get a list of movies is sent every 20 seconds.
 
 ## Run process
-To start processing run **./start.sh** file. 
+To start processing run *./start.sh* file. 
 This will start batch producer and consumer.
 Batch Producer loads data onto HDFS so it is enought to load it once. Batch Consumer starts transformation methods on the data and saves the resulting view in postgres database. In order to visualize the results we used Metabase. Some of the visualizations created in Metabase are saved in Consumer/Batch/Visualization folder.
 
